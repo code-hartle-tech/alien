@@ -1,0 +1,73 @@
+name: alien-predator
+base: core24
+version: '0.3.1'
+summary: Fan, lighting and turbo control for Acer Predator/Nitro laptops
+description: |
+  Hardware control for Acer gaming laptops on Linux, with no vendor software.
+
+  A clean-room implementation of the gaming WMI protocol, verified against real
+  firmware. Where a control is accepted by the firmware but has no observable
+  effect on a model, this software says so rather than implying it works.
+
+  IMPORTANT: this snap ships the frontends only. The privileged helper
+  (alien-daemon) needs root and the out-of-tree acpi_call kernel module, which
+  a snap cannot provide — /proc/acpi/call is not reachable from inside the
+  confinement at any privilege level. Install alien-daemon from the .deb, the
+  Arch package or the NixOS module first, then this snap talks to its socket.
+
+grade: stable
+confinement: strict
+license: GPL-2.0-or-later
+website: https://alien.hartle.tech
+contact: contact@hartle.tech
+
+apps:
+  alien-predator:
+    command: bin/alien-gui
+    desktop: share/applications/tech.hartle.Alien.desktop
+    extensions: [gnome]
+    plugs:
+      - wayland
+      - x11
+      - opengl
+      - alien-socket
+      - hardware-observe
+  alien:
+    command: bin/alien
+    plugs: [alien-socket, hardware-observe]
+  alien-tui:
+    command: bin/alien-tui
+    plugs: [alien-socket, hardware-observe]
+
+plugs:
+  # Reaching the daemon's socket needs an explicit connection:
+  #   snap connect alien-predator:alien-socket
+  # Deliberately not auto-connected. Talking to a root helper that drives
+  # firmware is exactly the sort of thing a user should approve by hand.
+  alien-socket:
+    interface: system-files
+    write:
+      - /run/alien/alien.sock
+
+parts:
+  alien:
+    plugin: rust
+    source: ../..
+    source-subdir: code
+    rust-path: [.]
+    # The daemon is omitted on purpose - see the description.
+    rust-features: []
+    override-build: |
+      cd $CRAFT_PART_SRC/code
+      cargo build --release -p alien-cli -p alien-tui -p alien-gui
+      install -Dm755 target/release/alien     $CRAFT_PART_INSTALL/bin/alien
+      install -Dm755 target/release/alien-tui $CRAFT_PART_INSTALL/bin/alien-tui
+      install -Dm755 target/release/alien-gui $CRAFT_PART_INSTALL/bin/alien-gui
+      install -Dm644 $CRAFT_PART_SRC/packaging/shared/tech.hartle.Alien.desktop \
+        $CRAFT_PART_INSTALL/share/applications/tech.hartle.Alien.desktop
+    build-packages:
+      - pkg-config
+      - libxkbcommon-dev
+    stage-packages:
+      - libgl1
+      - libxkbcommon0

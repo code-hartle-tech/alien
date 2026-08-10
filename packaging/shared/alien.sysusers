@@ -1,0 +1,4 @@
+# Members of `alien` may control the fans, keyboard lighting and turbo flags
+# through alien-daemon. Grant it as deliberately as any other hardware group:
+# it is a real capability, which is the point of it existing.
+g alien -
