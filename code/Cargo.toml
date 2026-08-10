@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = ["alien-core", "alien-cli", "alien-daemon", "alien-tui", "alien-gui"]
+
+[workspace.package]
+version = "0.3.1"
+edition = "2021"
+rust-version = "1.75"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/hartle-tech/alien"
+homepage = "https://alien.hartle.tech"
+authors = ["HARTLE.TECH <contact@hartle.tech>"]
+
+[workspace.dependencies]
+alien-core = { path = "alien-core", version = "0.3.1" }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+# Size over speed: this ships as a single binary to six packaging targets, and
+# nothing here is compute-bound — every operation ends in a syscall.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

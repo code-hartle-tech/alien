@@ -1,0 +1,24 @@
+Source: alien
+Section: utils
+Priority: optional
+Maintainer: HARTLE.TECH <contact@hartle.tech>
+Build-Depends: debhelper-compat (= 13), cargo, rustc (>= 1.75), pkg-config
+Standards-Version: 4.6.2
+Homepage: https://alien.hartle.tech
+Rules-Requires-Root: no
+
+Package: alien-predator
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, acpi-call-dkms
+Recommends: libgl1, libxkbcommon0
+Description: Hardware control for Acer Predator and Nitro laptops
+ Fan control, keyboard lighting, turbo flags and telemetry on Acer gaming
+ laptops, with no vendor software and no Windows.
+ .
+ A clean-room implementation of the gaming WMI protocol, verified against real
+ firmware. Where a control is accepted by the firmware but has no observable
+ effect on a given model, this software says so rather than implying it works.
+ .
+ Ships a CLI (alien), a terminal UI (alien-tui), a desktop app (alien-gui) and
+ the privileged helper (alien-daemon) that owns the firmware interface so the
+ frontends can stay unprivileged.

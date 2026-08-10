@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Alien
+GenericName=Predator Hardware Control
+Comment=Fan, lighting and turbo control for Acer Predator and Nitro laptops
+Exec=alien-launch
+Icon=tech.hartle.Alien
+Terminal=false
+Categories=System;Settings;HardwareSettings;
+Keywords=fan;rgb;keyboard;backlight;temperature;acer;predator;nitro;turbo;
+StartupNotify=true

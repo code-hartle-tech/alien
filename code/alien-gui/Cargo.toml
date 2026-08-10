@@ -1,0 +1,20 @@
+[package]
+name = "alien-gui"
+description = "Desktop control centre for Acer Predator/Nitro laptops"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "alien-gui"
+path = "src/main.rs"
+
+[dependencies]
+alien-core.workspace = true
+# glow (OpenGL) rather than wgpu: one less runtime to carry into a flatpak,
+# and this UI draws a few hundred triangles a frame.
+eframe = { version = "0.32", default-features = false, features = ["glow", "wayland", "x11", "default_fonts"] }

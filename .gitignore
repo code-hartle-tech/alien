@@ -1,0 +1,13 @@
+target/
+
+# ── NEVER COMMIT DECOMPILATION OUTPUT ───────────────────────────────────────
+# This repo is published. Decompiling PredatorSense for interoperability is
+# lawful; redistributing Acer's code or artwork is not — and the risk is not
+# the installer binary, it is the decompiled *source text*, which is exactly
+# what the previous version of this file (exe/dll/zip only) failed to exclude.
+#
+# The whole tree is ignored rather than a list of extensions, because the next
+# dump will arrive in a format nobody predicted. What may enter the repo is
+# facts derived from it: function numbers, payload layouts, observed values.
+# Never pasted code, never extracted artwork.
+research/decompiled/

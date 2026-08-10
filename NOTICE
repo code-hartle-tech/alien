@@ -1,0 +1,40 @@
+Alien
+Copyright (c) 2026 HARTLE.TECH <contact@hartle.tech>
+
+Licensed under the GNU General Public License, version 2 or later. See LICENSE.
+
+
+Interoperability and third-party rights
+---------------------------------------
+
+Alien is an independent, clean-room implementation of the ACPI/WMI interface
+that Acer's firmware exposes on Predator and Nitro laptops. It is not produced
+by, endorsed by, or affiliated with Acer Inc. "Acer", "Predator", "Nitro" and
+"PredatorSense" are trademarks of their respective owners, used here only to
+describe the hardware this software works with.
+
+The interface was characterised by observing the firmware directly — reading
+ACPI tables, issuing calls, and measuring what the hardware did — and by
+studying the vendor's own software for the sole purpose of interoperability.
+Every constant in this repository is a fact about a hardware interface.
+
+This repository contains no code, artwork, icons, or other assets taken from
+Acer's software. The user interface was written from scratch; where it
+resembles the vendor's, that is a deliberate reimplementation of a layout and
+colour scheme, not a copy of their files. Decompilation output is excluded from
+this repository by .gitignore and is never distributed.
+
+
+Credit
+------
+
+The reverse-engineering work behind the Linux Acer gaming WMI ecosystem is
+collective. Alien's understanding of the protocol builds on:
+
+  * facer — https://github.com/JafarAkhondali/acer-predator-turbo-and-rgb-keyboard-linux-module
+  * Linuwu-Sense — https://github.com/0x7375646F/Linuwu-Sense
+  * the in-tree acer-wmi driver in the Linux kernel
+
+Where their published function numbers and payload layouts matched what we
+measured, we say so; where our own measurements disagreed or went further, the
+source comments record which is which and how it was tested.
