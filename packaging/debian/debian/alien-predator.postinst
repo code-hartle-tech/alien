@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    # sysusers.d is not honoured on every supported release, so create the
+    # group directly if it is still missing. Idempotent either way.
+    if ! getent group alien >/dev/null; then
+        addgroup --system alien
+    fi
+
+    cat <<'MSG'
+
+Alien is installed. Two steps before it works:
+
+  sudo systemctl enable --now alien-daemon
+  sudo gpasswd -a "$USER" alien
+
+The group change does NOT affect your current session - log out and back in,
+or the GUI will refuse to start with a permission error.
+
+Run `alien doctor` to check this machine is supported.
+
+MSG
+fi
+
+#DEBHELPER#
