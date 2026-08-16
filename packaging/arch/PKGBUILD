@@ -1,0 +1,58 @@
+# Maintainer: HARTLE.TECH <contact@hartle.tech>
+pkgname=alien
+pkgver=0.5.0
+pkgrel=1
+pkgdesc="Fan, lighting, performance and telemetry control for Acer Predator systems"
+arch=('x86_64')
+url="https://alien.hartle.tech"
+license=('GPL-2.0-or-later')
+depends=('acpi_call-dkms' 'libglvnd' 'libxkbcommon' 'wayland' 'libx11'
+         'libxkbcommon-x11' 'libxcursor' 'libxi' 'libxrandr')
+makedepends=('cargo' 'pkgconf')
+optdepends=('nvidia-utils: exact PH315-53 OEM GPU modes via NVML')
+backup=()
+install=alien.install
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver/code"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo build --release --locked --workspace
+}
+
+check() {
+  cd "$srcdir/$pkgname-$pkgver/code"
+  # Only the pure logic runs here: the hardware tests need root and real
+  # firmware, and a package build must never touch either.
+  cargo test --release --locked --workspace
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  for b in alien alien-tui alien-gui; do
+    install -Dm755 "code/target/release/$b" "$pkgdir/usr/bin/$b"
+  done
+  install -Dm755 code/target/release/alien-daemon "$pkgdir/usr/bin/alien-daemon"
+  install -Dm755 code/tools/alien-launch "$pkgdir/usr/bin/alien-launch"
+
+  install -Dm644 packaging/systemd/alien-daemon.service \
+    "$pkgdir/usr/lib/systemd/system/alien-daemon.service"
+  install -Dm644 packaging/shared/alien.sysusers  "$pkgdir/usr/lib/sysusers.d/alien.conf"
+  install -Dm644 packaging/shared/60-alien.rules  "$pkgdir/usr/lib/udev/rules.d/60-alien.rules"
+  install -Dm644 packaging/shared/alien.modules-load.conf \
+    "$pkgdir/usr/lib/modules-load.d/alien.conf"
+  install -Dm644 packaging/shared/tech.hartle.Alien.desktop \
+    "$pkgdir/usr/share/applications/tech.hartle.Alien.desktop"
+  install -Dm644 assets/tech.hartle.Alien.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/tech.hartle.Alien.svg"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 code/alien-gui/assets/fonts/Archivo-OFL.txt \
+    "$pkgdir/usr/share/licenses/$pkgname/Archivo-OFL.txt"
+  install -Dm644 code/alien-gui/assets/fonts/IBMPlex-OFL.txt \
+    "$pkgdir/usr/share/licenses/$pkgname/IBMPlex-OFL.txt"
+  install -Dm644 code/alien-gui/assets/fonts/README.md \
+    "$pkgdir/usr/share/licenses/$pkgname/README.md"
+  install -Dm644 NOTICE "$pkgdir/usr/share/doc/$pkgname/NOTICE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

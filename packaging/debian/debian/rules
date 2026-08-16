@@ -1,0 +1,50 @@
+#!/usr/bin/make -f
+export DH_VERBOSE = 1
+# Vendored sources: the build must not reach the network, and Debian buildds
+# have none. `mkrelease.sh --vendor` produces a tarball with .cargo/ and
+# vendor/ already in place.
+export CARGO_HOME = $(CURDIR)/.cargo-home
+
+D = debian/alien-predator
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cd code && cargo build --release --locked --workspace --offline
+
+override_dh_auto_test:
+	# Pure-logic tests only. Anything touching firmware needs root and real
+	# hardware, neither of which a package build may assume.
+	cd code && cargo test --release --locked --workspace --offline
+
+override_dh_auto_install:
+	install -Dm755 code/target/release/alien        $(D)/usr/bin/alien
+	install -Dm755 code/target/release/alien-tui    $(D)/usr/bin/alien-tui
+	install -Dm755 code/target/release/alien-gui    $(D)/usr/bin/alien-gui
+	install -Dm755 code/target/release/alien-daemon $(D)/usr/bin/alien-daemon
+	install -Dm755 code/tools/alien-launch          $(D)/usr/bin/alien-launch
+	install -Dm644 packaging/systemd/alien-daemon.service \
+		$(D)/usr/lib/systemd/system/alien-daemon.service
+	install -Dm644 packaging/shared/alien.sysusers \
+		$(D)/usr/lib/sysusers.d/alien.conf
+	install -Dm644 packaging/shared/60-alien.rules \
+		$(D)/usr/lib/udev/rules.d/60-alien.rules
+	install -Dm644 packaging/shared/alien.modules-load.conf \
+		$(D)/usr/lib/modules-load.d/alien.conf
+	install -Dm644 packaging/shared/tech.hartle.Alien.desktop \
+		$(D)/usr/share/applications/tech.hartle.Alien.desktop
+	install -Dm644 assets/tech.hartle.Alien.svg \
+		$(D)/usr/share/icons/hicolor/scalable/apps/tech.hartle.Alien.svg
+	install -Dm644 code/alien-gui/assets/fonts/Archivo-OFL.txt \
+		$(D)/usr/share/doc/alien-predator/Archivo-OFL.txt
+	install -Dm644 code/alien-gui/assets/fonts/IBMPlex-OFL.txt \
+		$(D)/usr/share/doc/alien-predator/IBMPlex-OFL.txt
+	install -Dm644 code/alien-gui/assets/fonts/README.md \
+		$(D)/usr/share/doc/alien-predator/README.fonts.md
+	install -Dm644 NOTICE $(D)/usr/share/doc/alien-predator/NOTICE
+
+# Installed but not started: the daemon writes to firmware, and a package
+# install is not the moment to start doing that unasked. postinst says how.
+override_dh_installsystemd:
+	dh_installsystemd --name=alien-daemon --no-start
