@@ -1,0 +1,67 @@
+# Flatpak manifest — the GUI only.
+#
+# alien-daemon is deliberately NOT in here and cannot be. A flatpak has no path
+# to /proc/acpi/call at any privilege level: the file is outside the sandbox's
+# mount namespace, and even bind-mounting it in would leave the writes
+# unprivileged. Install the daemon from a native package; this ships the
+# frontend that talks to its socket.
+app-id: tech.hartle.Alien
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: alien-launch
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/alien/cargo
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # The one hole that matters: the daemon's socket. Scoped to the directory
+  # that holds it rather than --filesystem=host, so the app can reach the
+  # hardware helper and nothing else.
+  - --filesystem=/run/alien:rw
+  # Read-only DMI, so the About tab can name the machine and `doctor` can tell
+  # a supported model from an unsupported one.
+  - --filesystem=/sys/class/dmi/id:ro
+
+modules:
+  - name: alien
+    buildsystem: simple
+    build-options:
+      build-args:
+        # A normal checkout resolves crates through this network grant. Release
+        # tarballs made with `mkrelease.sh --vendor` carry code/.cargo plus the
+        # vendor tree, so the same command resolves locally there.
+        - --share=network
+    build-commands:
+      # Enter the workspace so a vendored release's code/.cargo/config.toml is
+      # discovered; ordinary source checkouts have no replacement config and
+      # use the network grant above.
+      - cd code && cargo build --release --locked -p alien-gui
+      - install -Dm755 code/target/release/alien-gui /app/bin/alien-gui
+      - install -Dm755 code/tools/alien-launch /app/bin/alien-launch
+      - install -Dm644 packaging/shared/tech.hartle.Alien.desktop
+        /app/share/applications/tech.hartle.Alien.desktop
+      - install -Dm644 assets/tech.hartle.Alien.svg
+        /app/share/icons/hicolor/scalable/apps/tech.hartle.Alien.svg
+      - install -Dm644 packaging/flatpak/tech.hartle.Alien.metainfo.xml
+        /app/share/metainfo/tech.hartle.Alien.metainfo.xml
+      - install -Dm644 code/alien-gui/assets/fonts/Archivo-OFL.txt
+        /app/share/licenses/tech.hartle.Alien/Archivo-OFL.txt
+      - install -Dm644 code/alien-gui/assets/fonts/IBMPlex-OFL.txt
+        /app/share/licenses/tech.hartle.Alien/IBMPlex-OFL.txt
+      - install -Dm644 code/alien-gui/assets/fonts/README.md
+        /app/share/licenses/tech.hartle.Alien/README.md
+      - install -Dm644 LICENSE
+        /app/share/licenses/tech.hartle.Alien/GPL-2.0-or-later.txt
+      - install -Dm644 NOTICE /app/share/doc/tech.hartle.Alien/NOTICE
+    sources:
+      - type: dir
+        path: ../..

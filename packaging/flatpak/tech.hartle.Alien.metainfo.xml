@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>tech.hartle.Alien</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+
+  <name>Alien</name>
+  <summary>Fan, lighting and performance control for Acer Predator laptops</summary>
+  <icon type="stock">tech.hartle.Alien</icon>
+
+  <description>
+    <p>
+      Hardware control for Acer Predator systems on Linux, with no
+      vendor software: fan modes and per-fan duty, four-zone keyboard lighting,
+      guarded model-specific performance controls, and live temperature and fan
+      telemetry.
+    </p>
+    <p>
+      An independent, from-scratch interoperability implementation of Acer's
+      gaming WMI protocol, verified against real firmware. Where a control is
+      accepted by the firmware but has no observable effect on a given model,
+      Alien says so rather than implying it works.
+    </p>
+    <p>
+      On the reference machine, forcing the fans to maximum is worth roughly
+      48 percent more sustained CPU throughput, because the stock firmware fan
+      curve holds the processor in thermal throttle.
+    </p>
+    <p>
+      This flatpak contains the desktop application only. The privileged helper
+      it talks to, alien-daemon, must be installed on the host from a native
+      package: it needs root and the acpi_call kernel module, which no sandbox
+      can provide.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">tech.hartle.Alien.desktop</launchable>
+
+  <url type="homepage">https://alien.hartle.tech</url>
+  <url type="bugtracker">https://github.com/code-hartle-tech/alien/issues</url>
+
+  <developer id="tech.hartle">
+    <name>HARTLE.TECH</name>
+  </developer>
+
+  <content_rating type="oars-1.1" />
+
+  <categories>
+    <category>System</category>
+    <category>Settings</category>
+  </categories>
+
+  <keywords>
+    <keyword>fan</keyword>
+    <keyword>rgb</keyword>
+    <keyword>keyboard</keyword>
+    <keyword>backlight</keyword>
+    <keyword>temperature</keyword>
+    <keyword>acer</keyword>
+    <keyword>predator</keyword>
+  </keywords>
+
+  <!-- Not affiliated with Acer. "Acer" and "Predator" are trademarks
+       of their respective owners, used here only to describe the hardware this
+       application works with. -->
+
+  <releases>
+    <release version="0.5.0" date="2026-08-12">
+      <description>
+        <p>Adds the guarded PH315-53 OEM Normal, Faster and Turbo GPU modes,
+        using exact P0 clock targets and ordered Acer firmware side effects
+        with readback, rollback, explicit risk acknowledgement and manual-only
+        notification-producing status reads.</p>
+      </description>
+    </release>
+    <release version="0.4.1" date="2026-08-11">
+      <description>
+        <p>Adds the canonical Alien application icon, exact PH315-53 lighting
+        protocol, and advanced firmware controls.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-08-10">
+      <description>
+        <p>First release: CLI, terminal UI and desktop application, with fan,
+        lighting, performance and telemetry support.</p>
+      </description>
+    </release>
+  </releases>
+</component>

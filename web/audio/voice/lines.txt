@@ -1,0 +1,16 @@
+01|Warning.
+02|Intrusion detected.
+03|Evacuate.
+04|Roger.
+05|Confirm.
+06|Negative.
+07|Motion detected. Sector seven.
+08|Contact lost.
+09|Hull breach. Deck four.
+10|Atmosphere critical.
+11|Containment failure.
+12|Sealing bulkhead.
+13|All personnel evacuate immediately.
+14|Life support offline.
+15|Emergency power engaged.
+16|Do not open that door.
