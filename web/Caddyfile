@@ -1,0 +1,37 @@
+# In-pod Caddy serving alien.hartle.tech.
+# Edge TLS and apex routing are handled by the host Caddy on the VPS.
+
+:8080 {
+	root * /srv
+	encode gzip zstd
+	file_server
+
+	# The installer is the product here, not an afterthought: it is what the
+	# one-line command on the landing page fetches. Served as plain text so a
+	# browser shows it rather than downloading it — people should be able to
+	# read it before piping it to a shell, and that only happens if it is
+	# frictionless to look at.
+	@installer path /install.sh
+	header @installer {
+		Content-Type "text/plain; charset=utf-8"
+		Cache-Control "public, max-age=300"
+	}
+
+	header {
+		Cache-Control "public, max-age=600"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "interest-cohort=()"
+
+		# Everything the page needs is served from this origin: no CDN, no font
+		# service, no analytics, no third-party player. media-src is here for the
+		# soundtrack, which is a file we host ourselves under a CC BY licence.
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; media-src 'self'; connect-src 'none'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"
+	}
+
+	handle_errors {
+		rewrite * /index.html
+		file_server
+	}
+}

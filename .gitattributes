@@ -1,0 +1,5 @@
+# These are byte-for-byte upstream legal texts. Preserve their original line
+# endings and historical trailing spaces; source hashes are part of the font
+# provenance receipt in code/alien-gui/assets/fonts/README.md.
+code/alien-gui/assets/fonts/Archivo-OFL.txt -text whitespace=-trailing-space
+code/alien-gui/assets/fonts/IBMPlex-OFL.txt -text whitespace=-trailing-space,cr-at-eol

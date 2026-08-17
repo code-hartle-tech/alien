@@ -1,0 +1,65 @@
+[Unit]
+Description=Alien — temperature-driven fan curve controller
+Documentation=https://alien.hartle.tech
+# Strictly downstream of the broker: this is an ordinary socket client with no
+# firmware access of its own. `Requires` rather than `Wants` because a curve
+# controller that cannot reach the daemon has nothing useful to do.
+After=alien-daemon.service
+Requires=alien-daemon.service
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/alien-cooling
+Restart=on-failure
+RestartSec=2
+
+# The restore layer that actually survives everything. The in-process signal
+# handler covers SIGTERM and SIGINT, but the release profile builds with
+# `panic = "abort"`, so a panic runs no Rust cleanup at all — and SIGKILL never
+# does. This line is what stops either case leaving the fans pinned in manual
+# forever, because there is no EC watchdog on this hardware to wind them back.
+ExecStopPost=-/usr/bin/alien fan max
+
+# ── Privilege ───────────────────────────────────────────────────────────────
+# No root, no capabilities, no kernel module. Group `alien` is the entire
+# privilege boundary, exactly as for the GUI and TUI, and every request still
+# passes the daemon's policy allowlist.
+DynamicUser=yes
+SupplementaryGroups=alien
+
+# Never let Device::open fall back to /proc/acpi/call. If this service won the
+# boot race and took the flock at /run/alien/daemon.lock, alien-daemon would
+# then fail to start with InterfaceBusy — and the fallback needs root anyway,
+# which DynamicUser denies, so the failure would be confusing rather than loud.
+Environment=ALIEN_REQUIRE_SOCKET=1
+
+# ── Not OOM-killable ────────────────────────────────────────────────────────
+# Being reaped mid-flight is the one failure with no recovery path: the fans
+# stay wherever they were last set. The binary re-reads this value at startup
+# and refuses to run if it did not take.
+OOMScoreAdjust=-1000
+
+# ── Sandboxing ──────────────────────────────────────────────────────────────
+# This process only ever talks to one Unix socket and reads two sysfs trees, so
+# it can be locked down far harder than the daemon it talks to.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @obsolete @debug @mount
+
+[Install]
+WantedBy=multi-user.target

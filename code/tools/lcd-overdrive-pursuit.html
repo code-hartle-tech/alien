@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Alien LCD-overdrive optical QA pursuit pattern</title>
+  <style>
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      color: #fff;
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: none;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="pattern" aria-label="Frame-paced moving-edge LCD pursuit pattern"></canvas>
+  <script>
+    "use strict";
+
+    // Standalone and deliberately dependency-free. The physical panel must be
+    // recorded by an independent high-speed camera; screenshots and display
+    // capture happen before the LCD and cannot measure overdrive.
+    const canvas = document.getElementById("pattern");
+    const context = canvas.getContext("2d", { alpha: false });
+    const query = new URLSearchParams(window.location.search);
+
+    const clamp = (value, minimum, maximum) =>
+      Math.min(maximum, Math.max(minimum, value));
+    const numberParameter = (name, fallback, minimum, maximum) => {
+      const raw = query.get(name);
+      if (raw === null || raw.trim() === "") return fallback;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed)
+        ? clamp(parsed, minimum, maximum)
+        : fallback;
+    };
+
+    const targetHz = numberParameter("hz", 144, 24, 360);
+    let pixelsPerFrame = Math.round(numberParameter("px", 8, 1, 32));
+    let direction = query.get("dir") === "rtl" ? -1 : 1;
+    let paused = false;
+    let frameNumber = 0;
+    let droppedFrameEstimate = 0;
+    let previousTimestamp;
+    const intervals = [];
+
+    let width = 0;
+    let height = 0;
+    let deviceScale = 1;
+
+    const resize = () => {
+      deviceScale = Math.max(1, window.devicePixelRatio || 1);
+      width = Math.max(1, window.innerWidth);
+      height = Math.max(1, window.innerHeight);
+      canvas.width = Math.round(width * deviceScale);
+      canvas.height = Math.round(height * deviceScale);
+      context.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+      context.imageSmoothingEnabled = false;
+    };
+
+    const median = (values) => {
+      if (values.length === 0) return 0;
+      const sorted = [...values].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[middle - 1] + sorted[middle]) / 2
+        : sorted[middle];
+    };
+
+    const movingOffset = (period) => {
+      const raw = direction * frameNumber * pixelsPerFrame;
+      return ((raw % period) + period) % period;
+    };
+
+    const drawTarget = (x, y, targetWidth, targetHeight, foreground, accent) => {
+      context.fillStyle = foreground;
+      context.fillRect(x, y, targetWidth, targetHeight);
+
+      const cell = 8;
+      context.fillStyle = accent;
+      for (let row = 0; row < Math.floor(targetHeight / cell); row += 1) {
+        for (let column = 0; column < Math.floor(targetWidth / cell); column += 1) {
+          if ((row + column) % 2 === 0) {
+            context.fillRect(x + column * cell, y + row * cell, cell, cell);
+          }
+        }
+      }
+
+      context.fillStyle = foreground;
+      context.fillRect(x + targetWidth / 2 - 1, y, 2, targetHeight);
+      context.fillRect(x, y + targetHeight / 2 - 1, targetWidth, 2);
+    };
+
+    const drawLane = (top, laneHeight, background, foreground, accent, label) => {
+      context.save();
+      context.beginPath();
+      context.rect(0, top, width, laneHeight);
+      context.clip();
+
+      context.fillStyle = background;
+      context.fillRect(0, top, width, laneHeight);
+
+      const period = 384;
+      const targetWidth = 96;
+      const targetHeight = Math.max(48, Math.min(112, laneHeight - 36));
+      const y = Math.round(top + (laneHeight - targetHeight) / 2);
+      const offset = movingOffset(period);
+      for (let x = -period + offset; x < width + period; x += period) {
+        drawTarget(Math.round(x), y, targetWidth, targetHeight, foreground, accent);
+      }
+
+      context.font = "bold 16px ui-monospace, monospace";
+      context.textBaseline = "top";
+      context.fillStyle = accent;
+      context.fillText(label, 12, top + 10);
+      context.restore();
+    };
+
+    const drawStationaryReferences = (top, referenceHeight) => {
+      const segmentWidth = width / 8;
+      const shades = ["#000", "#fff", "#202020", "#e0e0e0", "#f00", "#0ff", "#00f", "#ff0"];
+      for (let index = 0; index < shades.length; index += 1) {
+        context.fillStyle = shades[index];
+        context.fillRect(index * segmentWidth, top, Math.ceil(segmentWidth), referenceHeight);
+      }
+      context.fillStyle = "#808080";
+      context.fillRect(0, top + referenceHeight - 2, width, 2);
+    };
+
+    const drawSyncCode = (now) => {
+      const second = Math.floor(Date.now() / 1000);
+      const bitSize = 18;
+      const gap = 4;
+      const originX = width - 12 - (bitSize + gap) * 8;
+      const originY = 16;
+      for (let bit = 0; bit < 8; bit += 1) {
+        context.fillStyle = ((second >> bit) & 1) === 1 ? "#fff" : "#000";
+        context.fillRect(originX + bit * (bitSize + gap), originY, bitSize, bitSize);
+        context.strokeStyle = "#808080";
+        context.strokeRect(originX + bit * (bitSize + gap) + 0.5, originY + 0.5, bitSize - 1, bitSize - 1);
+      }
+      context.fillStyle = Math.floor(now / 500) % 2 === 0 ? "#fff" : "#000";
+      context.fillRect(width - 44, 44, 32, 32);
+      context.strokeStyle = "#808080";
+      context.strokeRect(width - 43.5, 44.5, 31, 31);
+    };
+
+    const draw = (timestamp) => {
+      context.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
+      context.fillStyle = "#111";
+      context.fillRect(0, 0, width, height);
+
+      const headerHeight = 92;
+      const referenceHeight = 28;
+      const footerHeight = 36;
+      const laneArea = Math.max(240, height - headerHeight - referenceHeight - footerHeight);
+      const laneHeight = laneArea / 4;
+
+      context.fillStyle = "#111";
+      context.fillRect(0, 0, width, headerHeight);
+      context.fillStyle = "#fff";
+      context.font = "bold 20px ui-monospace, monospace";
+      context.textBaseline = "top";
+      context.fillText("ALIEN LCD OVERDRIVE — PHYSICAL CAMERA PURSUIT PATTERN", 16, 13);
+
+      const measuredInterval = median(intervals);
+      const callbackHz = measuredInterval > 0 ? 1000 / measuredInterval : 0;
+      context.font = "16px ui-monospace, monospace";
+      context.fillStyle = "#b7c7d9";
+      context.fillText(
+        `target ${targetHz.toFixed(3)} Hz | rAF cadence ${callbackHz.toFixed(3)} Hz | ` +
+        `${pixelsPerFrame} px/frame ${direction > 0 ? "LTR" : "RTL"} | ` +
+        `frame ${frameNumber} | estimated missed callbacks ${droppedFrameEstimate}`,
+        16,
+        43
+      );
+      context.fillStyle = paused ? "#ffb000" : "#7dff9c";
+      context.fillText(
+        `${paused ? "PAUSED" : "RUNNING"} | UTC ${new Date().toISOString()} | F fullscreen | Space pause | R reset | D reverse | +/- speed`,
+        16,
+        67
+      );
+      drawSyncCode(timestamp);
+
+      let y = headerHeight;
+      drawLane(y, laneHeight, "#000", "#fff", "#808080", "100%: white target on black");
+      y += laneHeight;
+      drawLane(y, laneHeight, "#fff", "#000", "#808080", "100%: black target on white");
+      y += laneHeight;
+      drawLane(y, laneHeight, "#202020", "#e0e0e0", "#808080", "75%: light gray target on dark gray");
+      y += laneHeight;
+      drawLane(y, laneHeight, "#0000ff", "#ffff00", "#808080", "color: yellow target on blue");
+      y += laneHeight;
+
+      drawStationaryReferences(y, referenceHeight);
+      y += referenceHeight;
+      context.fillStyle = "#111";
+      context.fillRect(0, y, width, footerHeight);
+      context.fillStyle = "#d2d8df";
+      context.font = "14px ui-monospace, monospace";
+      context.fillText(
+        "Record the physical eDP panel at >=240 fps with fixed focus/exposure. A digital capture is not optical evidence.",
+        16,
+        y + 10
+      );
+    };
+
+    const animate = (timestamp) => {
+      if (previousTimestamp !== undefined) {
+        const interval = timestamp - previousTimestamp;
+        if (interval > 0 && interval < 100) {
+          intervals.push(interval);
+          if (intervals.length > 240) intervals.shift();
+          const expected = 1000 / targetHz;
+          if (interval > expected * 1.5) {
+            droppedFrameEstimate += Math.max(1, Math.round(interval / expected) - 1);
+          }
+        }
+      }
+      previousTimestamp = timestamp;
+      if (!paused) frameNumber += 1;
+      draw(timestamp);
+      window.requestAnimationFrame(animate);
+    };
+
+    window.addEventListener("resize", resize);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === " ") {
+        paused = !paused;
+        event.preventDefault();
+      } else if (event.key.toLowerCase() === "r") {
+        frameNumber = 0;
+        droppedFrameEstimate = 0;
+        intervals.length = 0;
+      } else if (event.key.toLowerCase() === "d") {
+        direction *= -1;
+      } else if (event.key === "+" || event.key === "=") {
+        pixelsPerFrame = clamp(pixelsPerFrame + 1, 1, 32);
+      } else if (event.key === "-") {
+        pixelsPerFrame = clamp(pixelsPerFrame - 1, 1, 32);
+      } else if (event.key.toLowerCase() === "f") {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    });
+
+    resize();
+    window.requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
