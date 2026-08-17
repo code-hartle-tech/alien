@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Is my laptop supported?
+    url: https://github.com/code-hartle-tech/alien/blob/main/docs/model-compatibility.md
+    about: The model catalog, and what each support tier actually means.
+  - name: Security issue
+    url: https://github.com/code-hartle-tech/alien/blob/main/SECURITY.md
+    about: Alien writes to firmware. Report privately, not as a public issue.
+  - name: Why doesn't a control work on my machine?
+    url: https://github.com/code-hartle-tech/alien/blob/main/docs/evidence.md
+    about: What is proven, what is only accepted by firmware, and three controls that measured worse than nothing.

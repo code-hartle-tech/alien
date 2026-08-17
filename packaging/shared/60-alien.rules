@@ -1,0 +1,7 @@
+# acpi_call is an out-of-tree module and is not autoloaded. The daemon exits
+# immediately without it, so load it at boot rather than leaving users to
+# discover the requirement from an error message.
+#
+# Restricted to Acer machines: this module lets userspace invoke arbitrary ACPI
+# methods, and there is no reason to load it on hardware Alien cannot drive.
+ACTION=="add", SUBSYSTEM=="dmi", ATTR{id/sys_vendor}=="Acer", RUN+="/sbin/modprobe acpi_call"
