@@ -1,0 +1,46 @@
+name: Feature request
+description: Something Alien should be able to do and cannot
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the feature is "support my laptop", use the
+        **Hardware support request** template instead — it asks for the right
+        things.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem, not the solution. It usually suggests a better solution.
+      placeholder: |
+        I want the fans to go quiet automatically when I undock and switch to
+        battery, without remembering to change profile.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would it look like?
+      description: Commands, UI, config — however you picture it.
+
+  - type: dropdown
+    id: prior_art
+    attributes:
+      label: Does another tool already do this?
+      description: |
+        PredatorSense, facer, Linuwu-Sense, CoolerControl, something else — a
+        working example is the fastest way to get a feature specified correctly.
+      options:
+        - "No, or I don't know"
+        - "Yes — I'll describe it below"
+    validations:
+      required: true
+
+  - type: textarea
+    id: prior_art_detail
+    attributes:
+      label: Which tool, and how does it behave?

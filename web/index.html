@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alien — take control of your Acer Predator on Linux</title>
+<meta name="description" content="Fans, keyboard lighting, cooling curves, telemetry and per-game profiles for Acer Predator laptops on Linux. One line to install. No Windows, no vendor software.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070a">
+
+<meta property="og:title" content="Alien — take control of your Acer Predator on Linux">
+<meta property="og:description" content="Fans, keyboard lighting, cooling curves, telemetry and per-game profiles. One line to install.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://alien.hartle.tech/">
+
+<link rel="icon" href="alien.svg" type="image/svg+xml">
+<link rel="stylesheet" href="alien.css">
+</head>
+<body>
+
+<!-- The set dressing, behind everything. Scenes are built and cycled by
+     alien.js; all of it is decorative and aria-hidden, so a screen reader gets
+     the product rather than a thousand lines of fictional casualty reports. -->
+<div class="scenes" id="scenes" aria-hidden="true"></div>
+<div class="alarm" id="alarm" aria-hidden="true"></div>
+<div class="lens" aria-hidden="true"></div>
+<div class="phosphor" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- Decorative only, and removed from the DOM once dismissed, so it is hidden
+     from assistive tech rather than read out as a wall of boot text. -->
+<div id="boot" aria-hidden="true">
+  <pre id="boot-out" class="cursor"></pre>
+  <div class="skip">click anywhere to skip</div>
+</div>
+
+<button id="sound" type="button" aria-pressed="false">○ audio off</button>
+
+<!-- preload="none": nothing is fetched until someone actually asks for audio,
+     so a visitor who never touches the toggle pays zero bytes for it.
+     Opus first because it is roughly a third smaller at the same quality; the
+     mp3 is there for anything that will not take it. -->
+<audio id="bed" loop preload="none" crossorigin="anonymous">
+  <source src="audio/alien-theme.opus" type="audio/ogg; codecs=opus">
+  <source src="audio/alien-theme.mp3" type="audio/mpeg">
+</audio>
+
+<main>
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <img class="hero-logo" src="alien.svg" alt="" aria-hidden="true">
+    <h1 class="wordmark">ALIEN</h1>
+    <p class="tagline">Take control of your Acer Predator. On&nbsp;Linux. Properly.</p>
+    <p class="subline">Fans · keyboard lighting · cooling curves · telemetry · per-game profiles</p>
+
+    <div class="command">
+      <code><span class="sigil">$ </span>curl -fsSL https://alien.hartle.tech/install.sh | sh</code>
+      <button class="copy" type="button"
+              data-copy="curl -fsSL https://alien.hartle.tech/install.sh | sh">copy</button>
+    </div>
+    <p class="command-note">
+      Debian · Ubuntu · Mint · Fedora · Arch · NixOS —
+      <a href="#install">or take a package yourself</a>
+    </p>
+  </section>
+
+  <!-- ── What it is ────────────────────────────────────────────────────── -->
+  <section id="what" class="reveal">
+    <p class="eyebrow">01 / the problem</p>
+    <h2>Acer never shipped this for Linux</h2>
+    <p class="lede">
+      PredatorSense exists on Windows. On Linux you get a laptop whose fans,
+      keyboard and thermal behaviour are entirely out of your hands — and a
+      stock fan curve that never ramps past about 3500 RPM no matter how hot
+      the chip gets.
+    </p>
+    <p class="lede" style="margin-top:1rem">
+      Alien is the control panel that was missing. It speaks the real Acer
+      gaming-WMI protocol, recovered by reverse-engineering PredatorSense
+      itself, so the firmware treats it exactly like the vendor tool.
+    </p>
+
+    <div class="grid">
+      <article class="card">
+        <span class="idx">01</span>
+        <h3>Fans that actually respond</h3>
+        <p>Firmware-auto, maximum, per-fan manual duty, and independent per-fan
+           modes. Off the stock curve, the same chip holds 2406 MHz instead of
+           1446 — <strong>+61.8% sustained throughput</strong>, measured over a
+           4×20-minute A/B/A.</p>
+      </article>
+
+      <article class="card">
+        <span class="idx">02</span>
+        <h3>Four-zone keyboard lighting</h3>
+        <p>Per-zone colour and brightness, plus Breathing, Wave, Zoom, Shifting
+           and Neon — through the <strong>real vendor protocol</strong>, read
+           back per zone so what you see is what the firmware holds.</p>
+      </article>
+
+      <article class="card">
+        <span class="idx">03</span>
+        <h3>A real cooling curve</h3>
+        <p>Asymmetric hysteresis, dwell timers, a critical latch and
+           boot-into-failsafe. Quiet at idle, ramps <strong>before</strong> the
+           chassis saturates. PredatorSense has no equivalent.</p>
+      </article>
+
+      <article class="card">
+        <span class="idx">04</span>
+        <h3>Game profiles that survive a crash</h3>
+        <p>Apply a profile for a game and always get it back — even on
+           <strong>SIGKILL</strong>, even across suspend. The baseline is written
+           to disk before the hardware is touched, so nothing strands your fans
+           at 100%.</p>
+      </article>
+
+      <article class="card">
+        <span class="idx">05</span>
+        <h3>Tells you why it's slow</h3>
+        <p><strong>Which cap is actually binding</strong> — thermal, power, or
+           nothing at all. No other tool on Linux or Windows reports this, which
+           is why so much tuning advice is folklore.</p>
+      </article>
+
+      <article class="card">
+        <span class="idx">06</span>
+        <h3>Three ways to drive it</h3>
+        <p>A desktop app, a terminal UI that works over SSH, and a scriptable
+           CLI with JSON output. <strong>One protocol library</strong>
+           underneath, one unprivileged socket.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── Comparison ────────────────────────────────────────────────────── -->
+  <section id="compare" class="reveal">
+    <p class="eyebrow">02 / specimen comparison</p>
+    <h2>Alien vs PredatorSense</h2>
+    <p class="lede">
+      Written to be checkable. Where Alien is behind, it says so — including the
+      two controls this firmware simply refuses.
+    </p>
+
+    <div style="overflow-x:auto">
+    <table class="readout">
+      <thead>
+        <tr><th scope="col">Capability</th><th scope="col">PredatorSense</th><th scope="col">Alien</th></tr>
+      </thead>
+      <tbody>
+        <tr class="edge"><td>Runs on Linux</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr><td>Fan automatic / maximum</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr><td>Per-fan manual duty</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Independent per-fan modes</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Temperature curve with hysteresis</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr><td>Four-zone lighting and effects</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr><td>Per-key lighting<small>per-key models only</small></td><td class="yes">yes</td><td class="part">experimental</td></tr>
+        <tr><td>Per-game profiles</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Profile survives a crash or SIGKILL</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Reports which limiter is binding</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Scriptable CLI with JSON output</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Terminal UI, works over SSH</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr class="edge"><td>Reports what your model really supports<small>rather than shipping dead controls</small></td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr><td>CoolBoost<small>works; no cooling benefit measured</small></td><td class="yes">yes</td><td class="part">partial</td></tr>
+        <tr><td>GPU Normal / Faster / Turbo<small>implemented; no speed-up measured</small></td><td class="yes">yes</td><td class="part">partial</td></tr>
+        <tr><td>Battery charge limit<small>firmware rejects it on the reference model</small></td><td class="yes">yes</td><td class="no">no</td></tr>
+        <tr><td>Keyboard backlight timeout<small>firmware rejects it on the reference model</small></td><td class="yes">yes</td><td class="no">no</td></tr>
+        <tr><td>Boot animation, OSD overlay</td><td class="yes">yes</td><td class="no">no</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="command-note">
+      Full breakdown, including <em>facer</em> and <em>Linuwu-Sense</em>:
+      <a href="https://github.com/code-hartle-tech/alien/blob/main/docs/parity.md">docs/parity.md</a>
+    </p>
+  </section>
+
+  <!-- ── Install ───────────────────────────────────────────────────────── -->
+  <section id="install" class="reveal">
+    <p class="eyebrow">03 / installation</p>
+    <h2>Get it on your machine</h2>
+    <p class="lede">
+      The one-liner detects your distribution, installs the matching package and
+      the kernel module it needs, sets up the service and tells you the single
+      manual step left. It never changes a fan or a light on its own.
+    </p>
+
+    <div class="tabs" role="tablist" aria-label="Installation method">
+      <button class="tab" role="tab" id="t-curl" aria-controls="p-curl" aria-selected="true">one line</button>
+      <button class="tab" role="tab" id="t-deb"  aria-controls="p-deb"  aria-selected="false">debian · ubuntu</button>
+      <button class="tab" role="tab" id="t-rpm"  aria-controls="p-rpm"  aria-selected="false">fedora</button>
+      <button class="tab" role="tab" id="t-arch" aria-controls="p-arch" aria-selected="false">arch</button>
+      <button class="tab" role="tab" id="t-nix"  aria-controls="p-nix"  aria-selected="false">nixos</button>
+      <button class="tab" role="tab" id="t-src"  aria-controls="p-src"  aria-selected="false">source</button>
+    </div>
+
+    <div class="panel on" id="p-curl" role="tabpanel" aria-labelledby="t-curl">
+      <div class="command">
+        <code><span class="sigil">$ </span>curl -fsSL https://alien.hartle.tech/install.sh | sh</code>
+        <button class="copy" type="button" data-copy="curl -fsSL https://alien.hartle.tech/install.sh | sh">copy</button>
+      </div>
+      <p class="command-note">
+        Piping to a shell is not for everyone, and you should not have to trust
+        us. Read it first:
+      </p>
+      <div class="command">
+        <code><span class="sigil">$ </span>curl -fsSLO https://alien.hartle.tech/install.sh &amp;&amp; less install.sh &amp;&amp; sh install.sh</code>
+        <button class="copy" type="button" data-copy="curl -fsSLO https://alien.hartle.tech/install.sh && less install.sh && sh install.sh">copy</button>
+      </div>
+      <p class="command-note"><code>sh install.sh --uninstall</code> reverses everything it did.</p>
+    </div>
+
+    <div class="panel" id="p-deb" role="tabpanel" aria-labelledby="t-deb">
+      <div class="command">
+        <code><span class="sigil">$ </span>sudo apt install ./alien-predator_*_amd64.deb</code>
+        <button class="copy" type="button" data-copy="sudo apt install ./alien-predator_*_amd64.deb">copy</button>
+      </div>
+      <p class="command-note">
+        Grab the <code>.deb</code> from
+        <a href="https://github.com/code-hartle-tech/alien/releases/latest">the latest release</a>.
+        Pulls in <code>acpi-call-dkms</code> from Debian/Ubuntu's own repositories.
+      </p>
+    </div>
+
+    <div class="panel" id="p-rpm" role="tabpanel" aria-labelledby="t-rpm">
+      <div class="command">
+        <code><span class="sigil">$ </span>sudo dnf install ./alien-predator-*.x86_64.rpm</code>
+        <button class="copy" type="button" data-copy="sudo dnf install ./alien-predator-*.x86_64.rpm">copy</button>
+      </div>
+      <p class="command-note">
+        Fedora needs the kernel module from a COPR first — it is in neither
+        Fedora nor RPM Fusion:
+      </p>
+      <div class="command">
+        <code><span class="sigil">$ </span>sudo dnf copr enable rhea/acpi_call &amp;&amp; sudo dnf install akmod-acpi_call</code>
+        <button class="copy" type="button" data-copy="sudo dnf copr enable rhea/acpi_call && sudo dnf install akmod-acpi_call">copy</button>
+      </div>
+    </div>
+
+    <div class="panel" id="p-arch" role="tabpanel" aria-labelledby="t-arch">
+      <div class="command">
+        <code><span class="sigil">$ </span>sudo pacman -U ./alien-*-x86_64.pkg.tar.zst</code>
+        <button class="copy" type="button" data-copy="sudo pacman -U ./alien-*-x86_64.pkg.tar.zst">copy</button>
+      </div>
+      <p class="command-note">
+        <code>acpi_call-dkms</code> is in <code>extra</code>, so it resolves
+        without touching the AUR.
+      </p>
+    </div>
+
+    <div class="panel" id="p-nix" role="tabpanel" aria-labelledby="t-nix">
+      <div class="command">
+        <code><span class="sigil">$ </span>inputs.alien.url = "github:code-hartle-tech/alien";</code>
+        <button class="copy" type="button" data-copy='inputs.alien.url = "github:code-hartle-tech/alien";'>copy</button>
+      </div>
+      <p class="command-note">
+        Then add <code>alien.nixosModules.default</code> and
+        <code>services.alien.enable = true;</code> with your username in
+        <code>services.alien.users</code>. This is the directly verified path —
+        the reference machine runs it.
+      </p>
+    </div>
+
+    <div class="panel" id="p-src" role="tabpanel" aria-labelledby="t-src">
+      <div class="command">
+        <code><span class="sigil">$ </span>git clone https://github.com/code-hartle-tech/alien &amp;&amp; cd alien/code &amp;&amp; cargo build --release --locked --workspace</code>
+        <button class="copy" type="button" data-copy="git clone https://github.com/code-hartle-tech/alien && cd alien/code && cargo build --release --locked --workspace">copy</button>
+      </div>
+      <p class="command-note">
+        Rust 1.88+. You will also need the <code>alien</code> group, the
+        <code>acpi_call</code> module, the hardened systemd unit and correct
+        socket ownership — don't run a frontend as root instead.
+      </p>
+    </div>
+
+    <p class="command-note" style="margin-top:2rem">
+      <strong style="color:var(--plasma)">One thing everybody forgets:</strong>
+      group membership does not reach a session that is already running. After
+      installing, log out and back in — otherwise every command will say it
+      cannot reach the daemon.
+    </p>
+  </section>
+
+  <!-- ── Hardware request ──────────────────────────────────────────────── -->
+  <section id="request" class="reveal">
+    <p class="eyebrow">04 / specimen acquisition</p>
+    <div class="request">
+      <h2>Want your Predator supported?</h2>
+      <p class="lede" style="margin-inline:auto">
+        Alien is model-gated on purpose. Rather than poke unproven firmware
+        indices on someone else's laptop, it refuses what it cannot prove — so a
+        model stays a <em>candidate</em> until a real machine reports in.
+      </p>
+      <p class="lede" style="margin-inline:auto;margin-top:1rem">
+        One live-verified machine so far. Eighteen more are mapped from Acer's
+        own plug-ins and need hardware receipts. If yours is one of them, you are
+        the missing piece — and <code>alien doctor</code> never writes to your
+        hardware, so running it is safe on a machine Alien does not support yet.
+      </p>
+      <a class="btn" href="https://github.com/code-hartle-tech/alien/issues/new?template=hardware-support.yml">
+        request support for your model
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>
+    <a href="https://github.com/code-hartle-tech/alien">source</a> ·
+    <a href="https://github.com/code-hartle-tech/alien/releases">releases</a> ·
+    <a href="https://github.com/code-hartle-tech/alien/blob/main/docs/reverse-engineering-predatorsense.md">how it was reverse-engineered</a> ·
+    <a href="https://github.com/code-hartle-tech/alien/blob/main/docs/evidence.md">evidence</a>
+  </p>
+  <p style="margin-top:1.5rem">
+    GPL-2.0-or-later · <a href="https://hartle.tech">HARTLE.TECH</a> ·
+    <a href="mailto:contact@hartle.tech">contact@hartle.tech</a>
+  </p>
+  <p style="max-width:52rem;margin:1rem auto 0;opacity:.75">
+    Music: <a href="https://ccmixter.org/files/morgantj/25838">They Come at Night</a>
+    by <a href="https://ccmixter.org/people/morgantj">morgantj</a>, licensed under
+    <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.
+    Interaction sounds are generated in your browser. Full provenance in
+    <a href="https://github.com/code-hartle-tech/alien/blob/main/web/CREDITS.md">CREDITS.md</a>.
+  </p>
+  <p style="max-width:52rem;margin:1rem auto 0;opacity:.75">
+    An independent interoperability project. Not affiliated with, endorsed by or
+    connected to Acer, and not affiliated with or endorsed by any film studio or
+    entertainment franchise.
+  </p>
+</footer>
+
+<script src="alien.js"></script>
+</body>
+</html>

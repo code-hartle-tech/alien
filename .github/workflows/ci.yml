@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  msrv:
+    name: Rust 1.88 minimum
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            libwayland-dev \
+            libx11-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxkbcommon-dev \
+            libxrandr-dev \
+            pkg-config
+
+      - name: Install minimum Rust
+        uses: dtolnay/rust-toolchain@1.88
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: code
+          key: msrv-1.88
+
+      - name: Check locked workspace
+        working-directory: code
+        run: cargo check --workspace --all-targets --locked
+
+  rust:
+    name: Rust workspace
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            libwayland-dev \
+            libx11-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxkbcommon-dev \
+            libxrandr-dev \
+            pkg-config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: code
+
+      - name: Format
+        working-directory: code
+        run: cargo fmt --all -- --check
+
+      - name: Test
+        working-directory: code
+        run: cargo test --workspace --all-targets --locked
+
+      - name: Documentation tests
+        working-directory: code
+        run: cargo test --workspace --doc --locked
+
+      - name: Clippy
+        working-directory: code
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings

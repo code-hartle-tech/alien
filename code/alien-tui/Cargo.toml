@@ -1,0 +1,17 @@
+[package]
+name = "alien-tui"
+description = "Terminal control centre for Acer Predator systems"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "alien-tui"
+path = "src/main.rs"
+
+[dependencies]
+alien-core.workspace = true
