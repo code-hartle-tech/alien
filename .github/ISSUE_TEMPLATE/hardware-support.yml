@@ -1,0 +1,80 @@
+name: Hardware support request
+description: Ask for your Acer model to be supported, or confirm one that is a candidate
+title: "[hardware] "
+labels: ["hardware-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting — this is the only way models move from *candidate*
+        to *live-verified*.
+
+        **`alien doctor` never writes to your hardware.** It runs getters only,
+        so it is safe on a machine Alien does not officially support yet.
+
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: The exact string, e.g. `Predator PH315-53` or `Nitro AN515-58`.
+      placeholder: Predator PH315-53
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`alien doctor` output"
+      description: |
+        Paste the whole thing. If Alien will not start at all, say so here and
+        paste `sudo dmesg | tail -50` instead.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: capabilities
+    attributes:
+      label: "`alien capabilities` output"
+      description: Optional, but it is the single most useful block for mapping a new model.
+      render: text
+
+  - type: dropdown
+    id: testing
+    attributes:
+      label: Are you willing to test a build with your model enabled?
+      description: |
+        Every setter Alien exposes is reversible, and the daemon restores your
+        baseline when it exits. Testing means running a few commands and saying
+        what the fans and keyboard actually did.
+      options:
+        - "Yes — send me a test build"
+        - "No — I am only reporting what my machine says"
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What does the hardware actually do?
+      description: |
+        Only if you are testing. Firmware returning success is not evidence —
+        what did the fans, the keyboard or the panel *physically* do?
+      placeholder: |
+        `alien fan max` → both fans audibly ramped, RPM went 3100 → 5900
+        `alien light zone 1 ff0000` → zone 1 turned red, other zones unchanged
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and kernel
+      placeholder: "Fedora 42, 6.15.4-200.fc42.x86_64"
+    validations:
+      required: true
+
+  - type: input
+    id: bios
+    attributes:
+      label: BIOS version
+      description: "`sudo dmidecode -s bios-version`, or read it off the setup screen."
+      placeholder: "V2.04"

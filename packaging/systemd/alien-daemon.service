@@ -1,0 +1,54 @@
+[Unit]
+Description=Alien — Acer Predator hardware control daemon
+Documentation=https://alien.hartle.tech
+# The daemon exits immediately if acpi_call is missing, so wait for module
+# loading rather than racing it and failing on a cold boot.
+After=systemd-modules-load.service
+Wants=systemd-modules-load.service
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/alien-daemon
+Restart=on-failure
+RestartSec=2
+
+# ── Sandboxing ──────────────────────────────────────────────────────────────
+# This process is root and speaks to firmware and the NVIDIA driver, so it gets
+# locked down around /proc/acpi/call, the GPU device nodes and a socket under
+# /run.
+#
+# Deliberately NOT set, with reasons, because each looks like an obvious win:
+#   ProtectKernelTunables=yes  — would make /proc/acpi/call read-only, which
+#                                is the entire job. This is the one knob that
+#                                breaks the daemon outright.
+#   PrivateMounts / ProtectProc — no benefit here and complicate the /proc view
+#                                the daemon depends on.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @obsolete
+# ...and then @chown back, because it is in @privileged and the daemon needs
+# that syscall class to give the socket to group `alien`. Without this line the
+# process does not fail gracefully — seccomp raises SIGSYS and it core-dumps at
+# startup (status=31/SYS), which is how this was found.
+SystemCallFilter=@chown
+# NVIDIA's open kernel driver checks capable(CAP_SYS_ADMIN) for the exact NVML
+# P0 clock-offset setter. Retain only that capability plus CAP_CHOWN for the
+# group-owned Unix socket; NoNewPrivileges and the syscall sandbox stay active.
+CapabilityBoundingSet=CAP_CHOWN CAP_SYS_ADMIN
+AmbientCapabilities=
+RuntimeDirectory=alien
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

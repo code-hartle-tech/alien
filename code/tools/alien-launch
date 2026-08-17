@@ -1,0 +1,100 @@
+#!/bin/sh
+# Open Alien in whatever form this machine can actually show.
+#
+# Bound to the vendor's PredatorSense key, or to anything else that wants "open
+# the control panel" without knowing what is installed. Tries, in order:
+#
+#   1. the GUI, if there is a display and the binary exists
+#   2. the TUI, in a terminal
+#   3. a terminal showing the CLI help
+#
+# Degrading rather than failing matters here because the four binaries are
+# packaged separately in several formats: a flatpak install has the GUI and no
+# CLI, a headless server package has the CLI and no GUI, and a snap has the
+# frontends but no daemon. A launcher that assumes one layout is wrong on most
+# of them.
+set -u
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Is the GUI already up?
+#
+# Three checks, because the process name is not the same everywhere. Nix wraps
+# binaries: `wrapProgram` renames the real executable to `.alien-gui-wrapped`,
+# so the kernel comm becomes `.alien-gui-wrap` (15-char limit) and an exact
+# match on `alien-gui` NEVER fires. That is not hypothetical — it is why
+# pressing the hardware key twice opened two windows.
+gui_running() {
+    pgrep -x alien-gui        >/dev/null 2>&1 && return 0   # plain install
+    pgrep -x .alien-gui-wrap  >/dev/null 2>&1 && return 0   # nix wrapper
+    pgrep -f 'bin/alien-gui'  >/dev/null 2>&1 && return 0   # by path
+    return 1
+}
+
+# Already open? Raise it instead of starting a second copy. Pressing a
+# hardware key twice should not give you two windows.
+if gui_running; then
+    if have hyprctl; then
+        # Match the app_id the GUI sets, with a title fallback for builds that
+        # predate it — an empty class is exactly the case this has to survive.
+        hyprctl dispatch focuswindow 'class:^(tech\.hartle\.Alien|alien-gui)$' >/dev/null 2>&1 \
+            || hyprctl dispatch focuswindow 'title:^Alien$' >/dev/null 2>&1
+    fi
+    exit 0
+fi
+
+# ── 1. GUI ─────────────────────────────────────────────────────────────────
+# Needs a display. WAYLAND_DISPLAY or DISPLAY being set is the check; without
+# one the GUI would start, fail to open a window, and exit with a message
+# nobody sees, which reads to the user as "the key does nothing".
+if have alien-gui && [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    exec alien-gui "$@"
+fi
+
+# ── 2. TUI in a terminal ───────────────────────────────────────────────────
+# First terminal that exists. The list is ordered by how likely it is to be
+# the user's own, not alphabetically.
+pick_terminal() {
+    for t in kitty foot alacritty wezterm ghostty konsole gnome-terminal \
+             xfce4-terminal xterm; do
+        have "$t" && { echo "$t"; return 0; }
+    done
+    return 1
+}
+
+run_in_terminal() {
+    term=$(pick_terminal) || return 1
+    case "$term" in
+        # -e is near-universal but the flag that PRECEDES it is not.
+        gnome-terminal) exec gnome-terminal -- "$@" ;;
+        konsole)        exec konsole -e "$@" ;;
+        *)              exec "$term" -e "$@" ;;
+    esac
+}
+
+if have alien-tui && [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    run_in_terminal alien-tui && exit 0
+fi
+
+# No display at all: we were probably run from a TTY or over SSH, where the
+# TUI is exactly right and does not need a terminal spawned for it.
+if have alien-tui && [ -t 1 ]; then
+    exec alien-tui
+fi
+
+# ── 3. CLI help ────────────────────────────────────────────────────────────
+# Held open with a read, because a terminal that prints help and closes in the
+# same instant is indistinguishable from one that never opened.
+if have alien; then
+    if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+        run_in_terminal sh -c 'alien help; alien doctor 2>/dev/null; \
+            printf "\n[press enter to close] "; read -r _' && exit 0
+    fi
+    exec alien help
+fi
+
+# Nothing at all is installed. Say so somewhere the user might see it.
+msg="Alien is not installed on this machine (no alien-gui, alien-tui or alien)."
+have notify-send && notify-send "Alien" "$msg"
+echo "$msg" >&2
+exit 1

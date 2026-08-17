@@ -1,0 +1,25 @@
+post_install() {
+  cat <<'MSG'
+
+Alien is installed. Two steps before it works:
+
+  systemctl enable --now alien-daemon
+  sudo gpasswd -a "$USER" alien
+
+The group change does NOT affect your current session — log out and back in,
+or the GUI will refuse to start with a permission error.
+
+Run `alien doctor` to check this machine is supported.
+
+MSG
+}
+
+post_upgrade() {
+  # Restart rather than leaving the old binary serving the socket, which would
+  # silently keep any protocol fix from taking effect.
+  systemctl try-restart alien-daemon.service
+}
+
+pre_remove() {
+  systemctl disable --now alien-daemon.service 2>/dev/null || true
+}

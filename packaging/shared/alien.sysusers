@@ -1,0 +1,5 @@
+# Members of `alien` may control fans, keyboard lighting, firmware policy and,
+# on an exact supported target after explicit acknowledgement, NVIDIA clock
+# offsets through alien-daemon. Grant it as deliberately as any other hardware
+# group: it is a real capability, which is the point of it existing.
+g alien -
