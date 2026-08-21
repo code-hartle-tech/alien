@@ -1,0 +1,123 @@
+name: alien-predator
+base: core24
+version: '0.6.0'
+summary: Fan, lighting and performance control for Acer Predator systems
+description: |
+  Hardware control for Acer gaming laptops on Linux, with no vendor software.
+
+  An independent, from-scratch interoperability implementation of the gaming
+  WMI protocol, checked against current PredatorSense packages and real
+  firmware. Every control is confirmed by firmware readback; where a measured
+  effect was looked for and not found, that result is published rather than
+  quietly dropped.
+
+  IMPORTANT: this snap ships the frontends only. The privileged helper
+  (alien-daemon) needs root and the out-of-tree acpi_call kernel module, which
+  a snap cannot provide — /proc/acpi/call is not reachable from inside the
+  confinement at any privilege level. Install alien-daemon from the .deb, the
+  Arch package or the NixOS module first, then this snap talks to its socket.
+
+grade: stable
+confinement: strict
+license: GPL-2.0-or-later
+website: https://alien.hartle.tech
+contact: contact@hartle.tech
+icon: share/icons/hicolor/512x512/apps/tech.hartle.Alien.png
+
+apps:
+  alien-predator:
+    command: bin/alien-gui
+    desktop: share/applications/tech.hartle.Alien.desktop
+    extensions: [gnome]
+    plugs:
+      - wayland
+      - x11
+      - opengl
+      - alien-socket
+      - hardware-observe
+  alien:
+    command: bin/alien
+    plugs: [alien-socket, hardware-observe]
+  alien-tui:
+    command: bin/alien-tui
+    plugs: [alien-socket, hardware-observe]
+
+plugs:
+  # Reaching the daemon's socket needs an explicit connection:
+  #   snap connect alien-predator:alien-socket
+  # Deliberately not auto-connected. Talking to a root helper that drives
+  # firmware is exactly the sort of thing a user should approve by hand.
+  alien-socket:
+    interface: system-files
+    write:
+      - /run/alien/alien.sock
+
+parts:
+  alien:
+    # `plugin: nil`, not `plugin: rust`.
+    #
+    # The rust plugin insists on finding rustup or a part literally named
+    # `rust-deps`, and fails the build with:
+    #   Environment validation failed for part 'alien': 'rustup' not found
+    # This part already drives cargo itself in override-build, so the plugin
+    # was only ever contributing that requirement. Installing the toolchain
+    # here is also the only way to get 1.88+: no Ubuntu release ships it, so
+    # `build-packages: [cargo]` would be too old, exactly as on the Debian
+    # side.
+    plugin: nil
+    # `.`, not `../..`, and no source-subdir.
+    #
+    # Snapcraft resolves a relative source against the PROJECT directory — the
+    # one it is invoked from — not against the directory this file happens to
+    # live in. CI stages this manifest to snap/snapcraft.yaml and runs
+    # snapcraft from the repository root, so `../..` pointed two levels above
+    # the repository and `source-subdir: code` then looked for a `code`
+    # directory that was not there:
+    #
+    #   cd: .../parts/alien/src/code: No such file or directory
+    #
+    # source-subdir is dropped rather than corrected because the install steps
+    # below reach repository-root paths (assets/, packaging/, LICENSE, NOTICE)
+    # through $CRAFT_PART_SRC. Pointing that at code/ would fix the cargo build
+    # and break every one of them.
+    source: .
+    override-build: |
+      set -eux
+      # Keep the toolchain inside the part so nothing leaks into the snap.
+      export RUSTUP_HOME="$CRAFT_PART_BUILD/.rustup"
+      export CARGO_HOME="$CRAFT_PART_BUILD/.cargo"
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path
+      export PATH="$CARGO_HOME/bin:$PATH"
+      rustc --version
+
+      cd $CRAFT_PART_SRC/code
+      cargo build --release --locked -p alien-cli -p alien-tui -p alien-gui
+      install -Dm755 target/release/alien     $CRAFT_PART_INSTALL/bin/alien
+      install -Dm755 target/release/alien-tui $CRAFT_PART_INSTALL/bin/alien-tui
+      install -Dm755 target/release/alien-gui $CRAFT_PART_INSTALL/bin/alien-gui
+      install -Dm644 $CRAFT_PART_SRC/packaging/shared/tech.hartle.Alien.desktop \
+        $CRAFT_PART_INSTALL/share/applications/tech.hartle.Alien.desktop
+      install -Dm644 $CRAFT_PART_SRC/assets/tech.hartle.Alien.svg \
+        $CRAFT_PART_INSTALL/share/icons/hicolor/scalable/apps/tech.hartle.Alien.svg
+      install -Dm644 $CRAFT_PART_SRC/code/alien-gui/assets/tech.hartle.Alien.png \
+        $CRAFT_PART_INSTALL/share/icons/hicolor/512x512/apps/tech.hartle.Alien.png
+      install -Dm644 $CRAFT_PART_SRC/code/alien-gui/assets/fonts/Archivo-OFL.txt \
+        $CRAFT_PART_INSTALL/share/licenses/alien-predator/Archivo-OFL.txt
+      install -Dm644 $CRAFT_PART_SRC/code/alien-gui/assets/fonts/IBMPlex-OFL.txt \
+        $CRAFT_PART_INSTALL/share/licenses/alien-predator/IBMPlex-OFL.txt
+      install -Dm644 $CRAFT_PART_SRC/code/alien-gui/assets/fonts/README.md \
+        $CRAFT_PART_INSTALL/share/licenses/alien-predator/README.md
+      install -Dm644 $CRAFT_PART_SRC/LICENSE \
+        $CRAFT_PART_INSTALL/share/licenses/alien-predator/GPL-2.0-or-later.txt
+      install -Dm644 $CRAFT_PART_SRC/NOTICE \
+        $CRAFT_PART_INSTALL/share/doc/alien-predator/NOTICE
+    build-packages:
+      - curl
+      - ca-certificates
+      - build-essential
+      - pkg-config
+      - libxkbcommon-dev
+    stage-packages:
+      - libgl1
+      - libxkbcommon0

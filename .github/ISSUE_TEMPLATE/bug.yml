@@ -1,0 +1,70 @@
+name: Bug report
+description: Something Alien does is wrong, or stopped working
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: run `alien doctor`. It answers most "why doesn't this
+        work on my machine" questions on its own, and its output is the first
+        thing anyone will ask you for.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+      placeholder: |
+        `alien fan max` returns success but the fans stay at idle RPM.
+        Expected both fans to ramp. `alien status` still shows 3100/3200 RPM
+        thirty seconds later.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where
+      options:
+        - CLI (alien)
+        - Desktop app (alien-gui)
+        - Terminal UI (alien-tui)
+        - Daemon (alien-daemon)
+        - Cooling curve (alien-cooling)
+        - Installation / packaging
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`alien doctor` output"
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Daemon log
+      description: "`journalctl -u alien-daemon -n 100 --no-pager`"
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Alien version
+      description: "`alien --version`"
+      placeholder: "0.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution, kernel and how you installed
+      placeholder: "Arch, 6.15.4-arch1-1, installed with the one-line installer"
+    validations:
+      required: true

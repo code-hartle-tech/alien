@@ -1,0 +1,14 @@
+{
+  "name": "Alien — Acer Predator control for Linux",
+  "short_name": "Alien",
+  "description": "Fans, keyboard lighting, cooling curves, telemetry and per-game profiles for Acer Predator laptops on Linux.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1d6b39",
+  "background_color": "#05070a",
+  "icons": [
+    { "src": "alien.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
